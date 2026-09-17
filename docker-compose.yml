@@ -1,0 +1,43 @@
+# Local full stack:  cp .env.example .env  (fill GITHUB_TOKEN)  →  docker compose up --build
+# Open http://localhost:8080  (API docs: http://localhost:8080/docs)
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-prospect}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-prospect}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-prospect} -d ${POSTGRES_DB:-prospect}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    # Not published to the host: only the backend can reach the database.
+
+  backend:
+    build: ./backend
+    environment:
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-prospect}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-prospect}
+      GITHUB_TOKEN: ${GITHUB_TOKEN:-}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:8080}
+      AUTHOR_HASH_SALT: ${AUTHOR_HASH_SALT:-change-me}
+      MAX_PAGES_PER_ENDPOINT: ${MAX_PAGES_PER_ENDPOINT:-5}
+      PR_DETAIL_SAMPLE: ${PR_DETAIL_SAMPLE:-15}
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+
+  frontend:
+    build: ./frontend
+    depends_on:
+      - backend
+    ports:
+      - "8080:8080"
+
+volumes:
+  pgdata:
