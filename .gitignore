@@ -1,30 +1,35 @@
-# --- Python / backend ---
-backend/venv/
-backend/__pycache__/
-backend/app/__pycache__/
-backend/app/routers/__pycache__/
-backend/tests/__pycache__/
-**/__pycache__/
-*.pyc
-backend/prospect.db
-backend/.pytest_cache/
-*.egg-info/
-
-# --- Node / frontend ---
-frontend/node_modules/
-frontend/dist/
-npm-debug.log*
-
-# --- Environment / secrets ---
+# Secrets
 .env
-backend/.env
-frontend/.env
-
-# --- Editor / OS ---
-.vscode/
-.idea/
+.env.*
+!.env.example
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+*.db
+.venv/
+venv/
+# Node
+node_modules/
+frontend/dist/
+coverage/
+# ML raw clones (large, reproducible via ml/collect_histories.py)
+ml/data/clones/
+ml/data/commits/
+ml/data/*.csv
+!ml/data/dataset_summary.csv
+!ml/data/dormancy_dataset.csv
+# OS / editors
 .DS_Store
-Thumbs.db
+.idea/
+.vscode/
 
-# --- Generated reports ---
-*.pdf
+# Windows desktop build (Tauri) — build output and packaged backend binaries
+desktop/src-tauri/target/
+desktop/src-tauri/gen/
+desktop/src-tauri/resources/
+# frontend/.env.desktop holds only the public local backend URL for the desktop build (no secrets)
+!frontend/.env.desktop

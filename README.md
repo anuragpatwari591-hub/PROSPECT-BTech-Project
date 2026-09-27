@@ -1,211 +1,90 @@
 # PROSPECT
 
-**Predictive Software Project Risk & Engineering Control System**
+**Predictive Software Project Risk Analysis and Decision Support System**
+Third-year B.Tech Software Engineering project — Anurag Patwari (27), Abhrajit Pal (14), Pritam Saha (24), Anuska Nayak (22).
 
-PROSPECT analyzes any public GitHub repository and produces a transparent,
-deterministic, rule-based **risk score (0–100)**, a **health score**, a
-**LOW / MEDIUM / HIGH / CRITICAL** classification, explainable risk factors,
-and actionable recommendations — all from real data pulled live from the
-GitHub REST API. No machine learning, no fabricated data, no special-casing
-of any repository (including this one).
+PROSPECT connects to a public GitHub repository, collects its development activity, turns it into documented software-engineering metrics, and produces an **explainable** risk assessment: a 0–100 risk score, a risk level, the exact contribution of every factor, linked recommendations, a What-If simulator, analysis history and a PDF report.
+
+> **Before the demo:** set `GITHUB_TOKEN` and run `python scripts/live_smoke.py --repo https://github.com/pallets/click`. A full live analysis was never completed in our build environment because the shared IP's anonymous GitHub quota was exhausted (docs/11_TESTING.md); only the live rate-limit path was verified there.
+
+> **Honesty notes.** The risk score is a transparent *heuristic* — its weights and thresholds are configurable and **not empirically validated**. Machine-learning outputs are **experimental**: our dormancy model did not clearly outperform a one-line rule on held-out repositories (docs/07). Simulations are estimates, not predictions.
 
 ## Features
-
-1. GitHub repository URL input
-2. Real GitHub repository data collection (GitHub REST API)
-3. Repository/activity metrics (commit recency, etc.)
-4. Issue analysis (open/closed ratio, stale issues)
-5. Pull request analysis (merge rate, stale PRs)
-6. Contributor dependency analysis ("bus factor")
-7. Release analysis (cadence, recency)
-8. Transparent rule-based risk score (0–100)
-9. Project health score (100 − risk score)
-10. LOW / MEDIUM / HIGH / CRITICAL classification
-11. Explainable risk factors (every point has a stated reason)
-12. Rule-based recommendations
-13. Analysis history (persisted in SQLite)
-14. What-If risk simulator (hypothetical metrics, instant re-scoring)
-15. Professional web dashboard
-16. PDF report generation
-17. Automated backend test suite (pytest)
-18. One-click Windows launcher (`start.bat`)
-19. Full documentation (this file + `docs/`)
-
-See `docs/RISK_ALGORITHM.md` for the exact scoring rules and
-`docs/ARCHITECTURE.md` for how the system fits together.
+- GitHub integration with pagination, rate-limit handling, retries, caching; token kept server-side
+- 22 metrics with definitions, formulas, sources, units, interpretation and limitations
+- Additive risk engine across 5 dimensions / 13 signals; contributions sum to the score
+- Rule-based recommendations linked to the triggering factor
+- What-If simulator (labelled SIMULATION / ESTIMATE)
+- History of every run with 7/30/90-day changes (never fabricated)
+- Activity and contributor-dependency charts
+- Experimental ML: Isolation Forest unusual weeks; logistic-regression dormancy estimate with exact explanations
+- PDF reports with methodology and limitations
+- 111 backend tests (97% coverage, PostgreSQL), 13 frontend tests, CI, Docker
 
 ## Tech stack
+React 19 · TypeScript · Vite · Tailwind CSS 4 · Recharts — FastAPI · Pydantic 2 · SQLAlchemy 2 · Alembic · PostgreSQL 16 — pandas · NumPy · scikit-learn — ReportLab — pytest · Vitest — Docker Compose · GitHub Actions · Render Blueprint
 
+## Quick start (Docker)
+```bash
+cp .env.example .env        # set GITHUB_TOKEN, POSTGRES_PASSWORD, AUTHOR_HASH_SALT
+docker compose up --build
 ```
-React + Vite + JavaScript + CSS      (frontend/)
-        |
-Python + FastAPI REST API            (backend/)
-        |
-SQLite                                (backend/prospect.db)
-        |
-GitHub REST API                       (https://api.github.com)
+Open http://localhost:8080 · API docs http://localhost:8080/docs
+
+Create a token at GitHub → Settings → Developer settings → Fine-grained tokens (public repositories, read-only). Without a token GitHub allows only 60 requests/hour.
+
+## Quick start (without Docker)
+```bash
+# terminal 1 — backend (needs PostgreSQL, or omit DATABASE_URL to use SQLite)
+cd backend && python -m venv .venv && source .venv/bin/activate
+pip install -r requirements-dev.txt
+export DATABASE_URL=postgresql+psycopg://prospect:<pw>@localhost:5432/prospect GITHUB_TOKEN=<token>
+alembic upgrade head && uvicorn app.main:app --reload
+# terminal 2 — frontend
+cd frontend && npm ci && npm run dev      # http://localhost:5173
 ```
 
-Deliberately simple: no Kubernetes, no message queues, no NoSQL clusters, no
-ML/MLOps frameworks. Every part of this stack can be explained end-to-end in
-a viva.
+## Windows desktop application
+PROSPECT also ships as an installable Windows app (Tauri 2 shell + PyInstaller-packaged backend + SQLite):
+double-click the installed **PROSPECT** shortcut and the app starts its own backend on `127.0.0.1:8000`.
+No Docker, Python or Node.js is needed on the user's PC. Build instructions, architecture and the GitHub-token
+setup are in [desktop/README.md](desktop/README.md).
+
+## Tests
+```bash
+cd backend && pytest --cov=app            # add TEST_DATABASE_URL=... to run on PostgreSQL
+cd frontend && npm run lint && npm run typecheck && npm test && npm run build
+python scripts/live_smoke.py --repo https://github.com/pallets/click   # real GitHub, running backend
+```
+
+## Demo (5 minutes)
+1. Add `https://github.com/pallets/click` → **Run first analysis**.
+2. Explain the headline: score, level, health, coverage, and the "where the points come from" strip.
+3. **Overview** → top factors and recommendations (each names its factor).
+4. **Risk factors** → metric value, threshold explanation, points per signal. Hover a metric for its definition.
+5. **What-if** → set PR turnaround to 1 day and top contributor share to 0.3 → **Simulate** → point out the estimate label.
+6. Add `https://github.com/request/request` (deprecated in 2020) and compare.
+7. **Re-analyse** click → **History** shows two runs (no fabricated trend).
+8. **Experimental ML** → dormancy estimate and why it is experimental.
+9. **Download PDF report**.
+10. Show `/docs` (Swagger) and the GitHub Actions run.
 
 ## Project structure
-
 ```
-prospect-software-risk-analyzer/
-├── backend/
-│   ├── app/
-│   │   ├── main.py           # FastAPI app, CORS, startup
-│   │   ├── config.py         # env-driven configuration
-│   │   ├── database.py       # SQLAlchemy engine/session
-│   │   ├── models.py         # Analysis table
-│   │   ├── schemas.py        # Pydantic request/response models
-│   │   ├── github_client.py  # real GitHub REST API client
-│   │   ├── risk_engine.py    # deterministic risk scoring engine
-│   │   ├── pdf_report.py     # PDF report generation (ReportLab)
-│   │   └── routers/          # analyze / history / whatif / report
-│   ├── requirements.txt
-│   └── .env.example
-├── frontend/
-│   ├── src/
-│   │   ├── components/       # RepoInput, Dashboard, WhatIfSimulator, ...
-│   │   ├── api.js            # fetch wrapper for the backend API
-│   │   ├── App.jsx
-│   │   └── styles/index.css
-│   ├── package.json
-│   └── vite.config.js
-├── tests/                    # pytest suite (runs against backend/app)
-│   ├── conftest.py
-│   ├── test_risk_engine.py
-│   ├── test_github_client.py
-│   └── test_api.py
-├── docs/
-│   ├── ARCHITECTURE.md
-│   └── RISK_ALGORITHM.md
-├── start.bat                 # one-click Windows setup + launch
-├── requirements.txt          # convenience pointer to backend/requirements.txt
-├── package.json              # convenience npm scripts that delegate to frontend/
-├── pytest.ini
-└── README.md
+prospect/
+├── backend/            FastAPI app, engines, ML serving, Alembic, tests, Dockerfile
+├── frontend/           React + TypeScript dashboard, tests, Dockerfile, nginx.conf
+├── ml/                 Reproducible dormancy experiment (collect, train, results)
+├── desktop/            Windows desktop shell (Tauri 2) that starts the packaged backend
+├── scripts/            Live smoke test, metrics-doc generator
+├── docs/               SE documentation, diagrams, viva material
+├── docker-compose.yml  Local full stack
+├── render.yaml         Cloud deployment blueprint
+└── .github/            CI workflow, Dependabot
 ```
 
-## Windows setup (recommended path)
+## Documentation
+See [docs/README.md](docs/README.md) for the full index (problem statement → SRS → metrics → risk model → ML → architecture → API → database → testing → security → deployment → manuals → limitations → future scope, plus diagrams, viva questions and presentation).
 
-**Prerequisites:** [Python 3.10+](https://www.python.org/downloads/) and
-[Node.js 18+](https://nodejs.org/) installed and available on `PATH`.
-
-1. Download or `git clone` this repository.
-2. Double-click **`start.bat`** (or run it from a terminal:
-   `start.bat`).
-3. The script will:
-   - Create a Python virtual environment in `backend/venv` and install
-     backend dependencies.
-   - Install frontend dependencies with `npm install` (first run only).
-   - Launch the backend API in one window (`http://127.0.0.1:8000`).
-   - Launch the frontend dev server in another window
-     (`http://127.0.0.1:5173`).
-   - Open the app in your default browser automatically.
-4. To stop, close the two opened terminal windows.
-
-## Manual setup (Windows / macOS / Linux)
-
-### Backend
-
-```bash
-cd backend
-python -m venv venv
-
-# Windows
-venv\Scripts\activate
-# macOS / Linux
-source venv/bin/activate
-
-pip install -r requirements.txt
-uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
-```
-
-The API is now live at `http://127.0.0.1:8000` (interactive docs at
-`http://127.0.0.1:8000/docs`).
-
-Optional: copy `backend/.env.example` to `backend/.env` and set
-`GITHUB_TOKEN` to a personal access token to raise the GitHub API rate
-limit from 60 to 5,000 requests/hour. No scopes are required for public
-repositories.
-
-### Frontend
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-Open `http://127.0.0.1:5173` in your browser. The Vite dev server proxies
-`/api/*` requests to the backend on port 8000 (see `vite.config.js`), so no
-CORS configuration is needed for local development.
-
-## Running the tests
-
-```bash
-# with the backend virtual environment activated (see backend setup above):
-pytest -v
-```
-
-Run this from the repository root — `pytest.ini` points pytest at the
-`tests/` directory, and `tests/conftest.py` adds `backend/` to the import
-path so the tests can `import app...` without installing it as a package.
-
-The suite covers:
-- The risk engine's scoring rules in isolation (no network calls).
-- The GitHub client's URL parsing and response normalization, including
-  edge cases like empty repositories.
-- The full FastAPI request/response cycle for `/api/analyze`,
-  `/api/history`, `/api/whatif/{id}`, and `/api/report/{id}` with the
-  GitHub API mocked out (so tests are fast and don't hit rate limits).
-
-## API reference
-
-| Method | Path | Description |
-|---|---|---|
-| `GET`  | `/api/health` | Liveness check |
-| `POST` | `/api/analyze` | Analyze a GitHub repo (`{"repo_url": "..."}`) and store the result |
-| `GET`  | `/api/history` | List past analyses (most recent first) |
-| `GET`  | `/api/history/{id}` | Get one full stored analysis |
-| `DELETE` | `/api/history/{id}` | Delete a stored analysis |
-| `POST` | `/api/whatif/{id}` | Re-run the risk engine with hypothetical metric overrides |
-| `GET`  | `/api/report/{id}` | Download a PDF report for a stored analysis |
-
-Full interactive documentation is auto-generated by FastAPI at `/docs` while
-the backend is running.
-
-## How the risk score works (summary)
-
-The engine scores five independent categories that always sum to 100
-points of maximum risk:
-
-| Category | Max points |
-|---|---|
-| Repository Activity | 25 |
-| Issue Management | 20 |
-| Pull Request Health | 15 |
-| Contributor Dependency (Bus Factor) | 25 |
-| Release Cadence | 15 |
-
-Risk Score = sum of category points. Health Score = 100 − Risk Score.
-Classification: 0–25 LOW, 26–50 MEDIUM, 51–75 HIGH, 76–100 CRITICAL.
-
-The exact thresholds, formulas, and rationale are documented in full in
-[`docs/RISK_ALGORITHM.md`](docs/RISK_ALGORITHM.md). The algorithm is
-identical for every repository — it only ever looks at metrics, never at a
-repository's name or owner, so it cannot be biased toward or against any
-specific project.
-
-## Notes on GitHub API usage
-
-- Works without any credentials (60 requests/hour, shared across all
-  unauthenticated traffic from your IP).
-- Set `GITHUB_TOKEN` in `backend/.env` for 5,000 requests/hour.
-- Only real GitHub API responses are used. If a repository has no releases,
-  no pull requests, etc., that is reported as zero/empty — nothing is ever
-  invented.
+## License
+Academic project. Add a license (e.g. MIT) before publishing.
