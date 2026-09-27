@@ -1,4 +1,4 @@
-import { formatValue, levelFor, relativeTime } from "../lib/format";
+import { formatValue, levelFor, parseApiDate, relativeTime } from "../lib/format";
 
 describe("formatValue", () => {
   it("handles missing values", () => { expect(formatValue(null)).toBe("—"); expect(formatValue(undefined, "days")).toBe("—"); });
@@ -19,5 +19,20 @@ describe("relativeTime", () => {
     expect(relativeTime("2026-09-17T11:30:00Z", now)).toBe("30 min ago");
     expect(relativeTime("2026-09-10T12:00:00Z", now)).toBe("7 days ago");
     expect(relativeTime(null, now)).toBe("never");
+  });
+});
+
+describe("parseApiDate", () => {
+  it("treats timestamps without a timezone as UTC (SQLite build)", () => {
+    expect(parseApiDate("2026-09-26T11:10:53.415148").toISOString()).toBe("2026-09-26T11:10:53.415Z");
+  });
+  it("keeps explicit timezones unchanged (PostgreSQL build)", () => {
+    expect(parseApiDate("2026-09-26T11:10:53+00:00").toISOString()).toBe("2026-09-26T11:10:53.000Z");
+    expect(parseApiDate("2026-09-26T16:40:53+05:30").toISOString()).toBe("2026-09-26T11:10:53.000Z");
+    expect(parseApiDate("2026-09-26T11:10:53Z").toISOString()).toBe("2026-09-26T11:10:53.000Z");
+  });
+  it("a fresh SQLite timestamp is 'just now', not hours ago", () => {
+    const now = Date.parse("2026-09-26T11:10:55Z");
+    expect(relativeTime("2026-09-26T11:10:53", now)).toBe("just now");
   });
 });

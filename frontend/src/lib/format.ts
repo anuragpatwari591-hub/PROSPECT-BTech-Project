@@ -20,14 +20,24 @@ export function formatValue(value: number | null | undefined, unit = ""): string
   return unit && !["commits", "issues", "PRs", "people", "releases"].includes(unit) ? `${text} ${unit}` : text;
 }
 
+/**
+ * Parse a timestamp from the API. The backend always stores UTC, but SQLite (used by the Windows desktop build)
+ * returns datetimes without a timezone marker, e.g. "2026-09-26T11:10:53". JavaScript would read such a string as
+ * LOCAL time, shifting it by the user's UTC offset (5 h 30 min in India). Treat marker-less timestamps as UTC.
+ */
+export function parseApiDate(iso: string): Date {
+  const hasZone = /(Z|[+-]\d{2}:?\d{2})$/i.test(iso);
+  return new Date(iso.includes("T") && !hasZone ? `${iso}Z` : iso);
+}
+
 export function formatDate(iso: string | null | undefined): string {
   if (!iso) return "never";
-  return new Date(iso).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+  return parseApiDate(iso).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
 }
 
 export function relativeTime(iso: string | null | undefined, now = Date.now()): string {
   if (!iso) return "never";
-  const minutes = Math.round((now - new Date(iso).getTime()) / 60000);
+  const minutes = Math.round((now - parseApiDate(iso).getTime()) / 60000);
   if (minutes < 1) return "just now";
   if (minutes < 60) return `${minutes} min ago`;
   const hours = Math.round(minutes / 60);
