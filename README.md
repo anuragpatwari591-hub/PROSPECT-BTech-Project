@@ -44,6 +44,12 @@ alembic upgrade head && uvicorn app.main:app --reload
 cd frontend && npm ci && npm run dev      # http://localhost:5173
 ```
 
+## Windows desktop application
+PROSPECT also ships as an installable Windows app (Tauri 2 shell + PyInstaller-packaged backend + SQLite):
+double-click the installed **PROSPECT** shortcut and the app starts its own backend on `127.0.0.1:8000`.
+No Docker, Python or Node.js is needed on the user's PC. Build instructions, architecture and the GitHub-token
+setup are in [desktop/README.md](desktop/README.md).
+
 ## Tests
 ```bash
 cd backend && pytest --cov=app            # add TEST_DATABASE_URL=... to run on PostgreSQL
@@ -69,6 +75,7 @@ prospect/
 ├── backend/            FastAPI app, engines, ML serving, Alembic, tests, Dockerfile
 ├── frontend/           React + TypeScript dashboard, tests, Dockerfile, nginx.conf
 ├── ml/                 Reproducible dormancy experiment (collect, train, results)
+├── desktop/            Windows desktop shell (Tauri 2) that starts the packaged backend
 ├── scripts/            Live smoke test, metrics-doc generator
 ├── docs/               SE documentation, diagrams, viva material
 ├── docker-compose.yml  Local full stack

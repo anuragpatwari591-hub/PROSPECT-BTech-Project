@@ -26,3 +26,10 @@ ml/data/*.csv
 .DS_Store
 .idea/
 .vscode/
+
+# Windows desktop build (Tauri) — build output and packaged backend binaries
+desktop/src-tauri/target/
+desktop/src-tauri/gen/
+desktop/src-tauri/resources/
+# frontend/.env.desktop holds only the public local backend URL for the desktop build (no secrets)
+!frontend/.env.desktop
