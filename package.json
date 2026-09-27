@@ -1,0 +1,11 @@
+{
+  "name": "prospect-software-risk-analyzer",
+  "private": true,
+  "version": "1.0.0",
+  "description": "PROSPECT - Predictive Software Project Risk & Engineering Control System",
+  "scripts": {
+    "install:frontend": "npm install --prefix frontend",
+    "dev": "npm run dev --prefix frontend",
+    "build": "npm run build --prefix frontend"
+  }
+}

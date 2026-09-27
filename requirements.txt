@@ -1,0 +1,5 @@
+# Convenience pointer: the backend's actual dependency list lives in
+# backend/requirements.txt so the backend/ folder stays self-contained.
+# Running `pip install -r requirements.txt` from the repo root installs the
+# same set.
+-r backend/requirements.txt
