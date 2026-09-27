@@ -1,0 +1,28 @@
+# Secrets
+.env
+.env.*
+!.env.example
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+*.db
+.venv/
+venv/
+# Node
+node_modules/
+frontend/dist/
+coverage/
+# ML raw clones (large, reproducible via ml/collect_histories.py)
+ml/data/clones/
+ml/data/commits/
+ml/data/*.csv
+!ml/data/dataset_summary.csv
+!ml/data/dormancy_dataset.csv
+# OS / editors
+.DS_Store
+.idea/
+.vscode/
