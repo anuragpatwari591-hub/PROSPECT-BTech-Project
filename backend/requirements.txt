@@ -8,6 +8,6 @@ psycopg[binary]==3.3.5
 httpx==0.28.1
 numpy==2.4.4
 pandas==3.0.2
-scikit-learn==1.8.0
+scikit-learn==1.9.1
 joblib>=1.4
 reportlab==4.4.10
